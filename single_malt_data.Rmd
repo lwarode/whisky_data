@@ -1,0 +1,64 @@
+---
+title: "Whisky Data"
+subtitle: "Information about 86 Scottish Single Malt Whiskies and Distilleries"
+output:
+  html_document:
+    theme: cosmo
+---
+
+<style type="text/css">
+body, td {
+   font-family: EB Garamond;
+   font-size: 14px
+}
+h1.title {
+   font-family: EB Garamond Medium;
+   font-size: 38px
+}
+h1 { /* Header 1 */
+   font-family: EB Garamond Medium;
+   font-size: 28px
+}
+h2 { /* Header 2 */
+   font-family: EB Garamond Medium;
+   font-size: 22px
+}
+h3 { /* Header 3 */
+   font-family: EB Garamond Medium;
+   font-size: 18px
+}
+</style>
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(message=FALSE, warning=FALSE)
+```
+
+# R packages and setup
+
+```{r packages}
+library(tidyverse)
+library(stringr)
+library(skimr)
+```
+
+# Obtain data
+
+```{r}
+whisky_url <- "https://outreach.mathstat.strath.ac.uk/outreach/nessie/datasets/whiskies.txt"
+
+whisky_data_raw <- read.delim(whisky_url, sep = ",")
+```
+
+# Data management and wrangling
+
+```{r}
+whisky_df <- whisky_data_raw %>% 
+  mutate(Postcode = str_trim(Postcode, side = "left"))
+
+whisky_df %>% 
+  glimpse()
+
+whisky_df %>% 
+  skim()
+```
+
