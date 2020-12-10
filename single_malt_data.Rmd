@@ -39,6 +39,7 @@ knitr::opts_chunk$set(message=FALSE, warning=FALSE)
 library(tidyverse)
 library(stringr)
 library(skimr)
+library(DT)
 library(ggrepel)
 library(broom)
 library(MASS)
@@ -79,8 +80,11 @@ whisky_df %>%
 whisky_df %>% 
    head()
 
-whisky_df %>% 
-  skim()
+whisky_df %>%
+   skim()
+
+whisky_df %>%
+   datatable()
 
 # data in long format
 whisky_df_long <- whisky_df %>% 
