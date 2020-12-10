@@ -9,7 +9,7 @@ output:
 <style type="text/css">
 body, td {
    font-family: EB Garamond;
-   font-size: 14px
+   font-size: 18px
 }
 h1.title {
    font-family: EB Garamond Medium;
@@ -39,26 +39,280 @@ knitr::opts_chunk$set(message=FALSE, warning=FALSE)
 library(tidyverse)
 library(stringr)
 library(skimr)
+library(ggrepel)
+library(broom)
+library(MASS)
+library(corrr)
+library(ggdendro)
 ```
 
 # Obtain data
 
-```{r}
-whisky_url <- "https://outreach.mathstat.strath.ac.uk/outreach/nessie/datasets/whiskies.txt"
+Just download the file *whiskies.txt* `if` it is non-existing in the local path.
 
-whisky_data_raw <- read.delim(whisky_url, sep = ",")
+```{r}
+whisky_data <- "whiskies.txt"
+
+if (! whisky_data %in% list.files()) {
+   
+   whisky_url <- "https://outreach.mathstat.strath.ac.uk/outreach/nessie/datasets/whiskies.txt"
+   
+   download.file(whisky_url, whisky_data)
+   
+}
+
+whisky_data_raw <- read.delim("whiskies.txt", sep = ",")
 ```
 
 # Data management and wrangling
 
+Using different functions to get basic insights of the used whisky data.
+
 ```{r}
-whisky_df <- whisky_data_raw %>% 
-  mutate(Postcode = str_trim(Postcode, side = "left"))
+whisky_df <- whisky_data_raw %>%
+   dplyr::select(! RowID) %>% 
+   mutate(Postcode = str_trim(Postcode, side = "left")) 
 
 whisky_df %>% 
   glimpse()
 
 whisky_df %>% 
+   head()
+
+whisky_df %>% 
   skim()
+
+# data in long format
+whisky_df_long <- whisky_df %>% 
+   pivot_longer(cols = Body:Floral, names_to = "taste_category", values_to = "value")
+
+# summarising taste data
+whisky_df_long %>% 
+   group_by(taste_category) %>% 
+   summarise(mean = mean(value),
+             median = median(value))
 ```
+
+# Statistical analysis
+
+## Correlations
+
+In order to analyze the relationship between the different taste categories the individual correlations (pearson $\rho$) are computed and displayed.
+
+$$ \Large \rho = \frac{cov(X,Y)}{\sigma_X \sigma_Y}$$
+```{r}
+# Correlation matrix
+whisky_df %>% 
+   dplyr::select(Body:Floral) %>% 
+   correlate() %>% 
+   rearrange() %>%
+   shave() %>% 
+   fashion() 
+   
+# Correlation plot
+corr_plot <- whisky_df %>% 
+   dplyr::select(Body:Floral) %>% 
+   correlate() %>% 
+   rearrange() %>%
+   shave() %>% 
+   rplot() 
+
+corr_plot
+
+ggsave("corr_plot.png", 
+       corr_plot, 
+       width = 8, 
+       height = 4)
+
+# Correlation network
+network_plot <- whisky_df %>% 
+   dplyr::select(Body:Floral) %>% 
+   correlate() %>% 
+   network_plot()
+
+network_plot
+
+ggsave("network_plot.png", 
+       network_plot, 
+       width = 8, 
+       height = 4)
+
+```
+
+## Dendrogram
+
+### Dendogram for distilleries
+
+```{r, fig.height = 10, fig.width=6}
+# Dendrogram distilleries
+whisky_df %>% 
+   column_to_rownames("Distillery") %>% 
+   dplyr::select(Body:Floral) %>% 
+   dist() %>% 
+   hclust() %>% 
+   ggdendrogram(rotate = TRUE) + 
+   labs(title = "Dendrogam | Distilleries") + 
+   theme(text = element_text(family = "EB Garamond"),
+         plot.title = element_text(size = 20)) +
+   ggsave("dendrogram_dist.png", 
+          height = 10,
+          width = 6)
+```
+
+### Dendrogram for taste categories
+
+```{r, fig.height = 10, fig.width=6}
+# Dendrogram taste categories
+whisky_df %>% 
+   dplyr::select(Distillery, Body:Floral) %>% 
+   pivot_longer(cols = Body:Floral, names_to = "taste_category", values_to = "taste_value") %>% 
+   pivot_wider(names_from = Distillery, values_from = taste_value) %>% 
+   column_to_rownames("taste_category") %>% 
+   dist() %>% 
+   hclust() %>% 
+   ggdendrogram(rotate = TRUE) +
+   labs(title = "Dendrogam | Taste Categories") + 
+   theme(text = element_text(family = "EB Garamond"),
+         plot.title = element_text(size = 20)) +
+   ggsave("dendrogram_taste.png", 
+          height = 7.5,
+          width = 4.5)
+```
+
+## *k*-means clustering
+
+The *k*-means algorithm is used to create distinct clusters among the distilleries based on the values of the tasting categories.
+
+
+## Linear regression / linear model
+
+```{r, include = FALSE}
+# model_data <- whisky_df %>% 
+#    transmute(across(c(Body:Floral), as.factor))
+
+
+
+
+
+
+whisky_df %>% 
+   dplyr::select(Body:Floral)%>% 
+   map(~ lm(Body ~ .x, data = whisky_df)) %>% 
+   map(summary) %>% 
+   map_dbl("r.squared") %>% 
+   tidy %>% 
+   arrange(desc(x)) %>% 
+   rename(r.squared = x) %>% 
+   knitr::kable()
+
+
+# model_data <- whisky_df %>% 
+#    mutate(across(c(Body:Floral), as.factor)) %>% 
+#    mutate(Longitude = as.numeric(str_trim(as.character(Longitude)),
+#           Latitude = as.numeric(str_trim(as.character(Latitude))))) %>% 
+#    filter(is.infinite(Latitude))
+   # mutate(Body = factor(Body, levels = 0:4, ordered = TRUE))
+          # Body_chr = case_when(
+          #    Body == 0 ~ "very weak",
+          #    Body == 1 ~ "weak",
+          #    Body == 2 ~ "medium",
+          #    Body == 3 ~ "strong",
+          #    Body == 4 ~ "very strong"
+          # ),
+          # Body_chr = as.factor(Body_chr)
+   # )
+
+
+# model_body <- polr(factor(Body) ~ Smoky + Sweetness, data = whisky_df, Hess = TRUE)
+# model_body <- polr(factor(Body) ~ Latitude, data = whisky_df, Hess = TRUE)
+# model_body <- lm(Body ~ Longitude * Latitude, data = whisky_df)
+# 
+# summary(model_body)
+# 
+# model_body <- polr(Body ~ Smoky + Sweetness, data = model_data, Hess = TRUE)
+# model_body <- polr(Smoky ~ Floral + Sweetness, data = model_data)
+# 
+# for (i in model_data$Longitude) {
+#    print(i)
+# }
+
+# model_body <- lm(Body ~ Longitude + Latitude, data = whisky_df)
+
+
+
+
+
+```
+
+
+# Data visualization
+
+## Longitude -- Latitude
+
+```{r, eval=FALSE, include=FALSE}
+theme_set(theme_linedraw())
+
+# custom_palette <- RColorBrewer::brewer.pal(n = 10, "Blues")[5:10]
+
+plot_long_function <- function(taste_var, taste_value, df) {
+   
+   df <- df %>% 
+      filter(taste_var == taste_value)
+
+   ggplot(df, aes(x = Longitude, y = Latitude, color = as.factor(!!enquo(taste_var)))) +
+      geom_point(size = 5, alpha = 0.75) +
+      # scale_color_ordinal(direction = -1, name = enquo(taste_var)) +
+      scale_color_ordinal(direction = -1) +
+      ggtitle(enquo(taste_value)) +
+      geom_text_repel(aes(label = Distillery), show.legend = FALSE) 
+   
+}
+
+plot_long_function(taste_category, "Smoky", whisky_df_long)
+
+
+plot_wide_function <- function(taste_var, df) {
+   
+   df_select <- df %>% 
+      select(!!enquo(taste_var), Longitude, Latitude, Distillery)
+
+   ggplot(df_select, aes(x = Longitude, y = Latitude, color = as.factor(!!enquo(taste_var)))) +
+      geom_point(size = 5, alpha = 0.75) +
+      scale_color_ordinal(direction = -1, name = enquo(taste_var)) +
+      ggtitle(enquo(taste_var)) +
+      geom_text_repel(aes(label = Distillery), show.legend = FALSE) 
+   
+}
+
+map(whisky_df %>% select(Body:Sweetness) , plot_wide_function, whisky_df)
+
+plot_wide_function(Smoky, whisky_df)
+
+plot_ll_function("Smoky", whisky_df)
+
+map(names_taste, plot_ll_function, whisky_df)
+
+map(whisky_df %>% select(Body:Sweetness), plot_ll_function, whisky_df)
+lapply(whisky_df %>% select(Body:Sweetness), plot_ll_function, whisky_df)
+map(whisky_df[3:4], plot_ll_function, whisky_df)
+
+whisky_df %>% 
+   select(Body:Sweetness) %>% 
+   names() %>% 
+   map(~ ggplot(whisky_df, aes_string(x = Longitude, y = Latitude, color = as.factor(.))) +
+      geom_point(size = 5, alpha = 0.75) +
+      scale_color_ordinal(direction = -1, name = .) +
+      geom_text_repel(aes(label = Distillery), show.legend = FALSE))
+
+whisky_df_long %>% 
+   split(.$taste_category) %>% 
+   map(~ggplot(., aes(x = Longitude, y = Latitude, color = as.factor(levels(taste_category)))) + 
+          geom_point(size = 5, alpha = 0.75) +
+          scale_color_ordinal(direction = -1, name = .) 
+   )
+   
+
+```
+
+
 
