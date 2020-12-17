@@ -4,6 +4,9 @@ subtitle: "Information about 86 Scottish Single Malt Whiskies and Distilleries"
 output:
   html_document:
     theme: cosmo
+    code_folding: show
+    toc: true
+    toc_float: true
 ---
 
 <style type="text/css">
@@ -30,7 +33,11 @@ h3 { /* Header 3 */
 </style>
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(message=FALSE, warning=FALSE)
+knitr::opts_chunk$set(error=FALSE,
+                      message=FALSE, 
+                      warning=FALSE,
+                      fig.width=7,
+                      fig.height=5)
 ```
 
 # R packages and setup
@@ -65,7 +72,7 @@ if (! whisky_data %in% list.files()) {
 whisky_data_raw <- read.delim("whiskies.txt", sep = ",")
 ```
 
-# Data management and wrangling
+# Data management and wrangling {.tabset .tabset-fade}
 
 Using different functions to get basic insights of the used whisky data.
 
@@ -73,18 +80,6 @@ Using different functions to get basic insights of the used whisky data.
 whisky_df <- whisky_data_raw %>%
    dplyr::select(! RowID) %>% 
    mutate(Postcode = str_trim(Postcode, side = "left")) 
-
-whisky_df %>% 
-  glimpse()
-
-whisky_df %>% 
-   head()
-
-whisky_df %>%
-   skim()
-
-whisky_df %>%
-   datatable()
 
 # data in long format
 whisky_df_long <- whisky_df %>% 
@@ -95,6 +90,34 @@ whisky_df_long %>%
    group_by(taste_category) %>% 
    summarise(mean = mean(value),
              median = median(value))
+```
+
+## `glimpse()`
+
+```{r}
+whisky_df %>% 
+  glimpse()
+```
+
+## `head()`
+
+```{r}
+whisky_df %>% 
+   head()
+```
+
+## `skim()`
+
+```{r}
+whisky_df %>%
+   skim()
+```
+   
+## `datatable()`
+
+```{r}
+whisky_df %>%
+   datatable()
 ```
 
 # Statistical analysis
@@ -145,7 +168,7 @@ ggsave("network_plot.png",
 
 ## Dendrogram
 
-### Dendogram for distilleries
+### Dendrogram for distilleries
 
 ```{r, fig.height = 10, fig.width=6}
 # Dendrogram distilleries
@@ -155,7 +178,7 @@ whisky_df %>%
    dist() %>% 
    hclust() %>% 
    ggdendrogram(rotate = TRUE) + 
-   labs(title = "Dendrogam | Distilleries") + 
+   labs(title = "Dendrogram | Distilleries") + 
    theme(text = element_text(family = "EB Garamond"),
          plot.title = element_text(size = 20)) +
    ggsave("dendrogram_dist.png", 
@@ -175,7 +198,7 @@ whisky_df %>%
    dist() %>% 
    hclust() %>% 
    ggdendrogram(rotate = TRUE) +
-   labs(title = "Dendrogam | Taste Categories") + 
+   labs(title = "Dendrogram | Taste Categories") + 
    theme(text = element_text(family = "EB Garamond"),
          plot.title = element_text(size = 20)) +
    ggsave("dendrogram_taste.png", 
@@ -187,10 +210,28 @@ whisky_df %>%
 
 The *k*-means algorithm is used to create distinct clusters among the distilleries based on the values of the tasting categories.
 
+```{r, eval=FALSE}
+set.seed(42)
+
+for (i in 2:10) {
+   print(kmeans(whisky_df[, 2:13], i))
+}
+
+km_4 <- kmeans(whisky_df[, 2:13], 4)
+
+whisky_df %>% 
+   select(Body:Floral) %>% 
+   kmeans(4)
+
+```
+
+
 
 ## Linear regression / linear model
 
-```{r, include = FALSE}
+…
+
+```{r, eval=FALSE}
 # model_data <- whisky_df %>% 
 #    transmute(across(c(Body:Floral), as.factor))
 
@@ -248,10 +289,11 @@ whisky_df %>%
 
 ```
 
-
 # Data visualization
 
 ## Longitude -- Latitude
+
+…
 
 ```{r, eval=FALSE, include=FALSE}
 theme_set(theme_linedraw())

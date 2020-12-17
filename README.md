@@ -12,8 +12,6 @@ ___
 
 ___
 
-![](dendrogram_dist.png)
+![](dendrogram_taste.png)
 
 ___
-
-![](dendrogram_taste.png)
