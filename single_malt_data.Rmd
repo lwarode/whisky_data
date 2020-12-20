@@ -45,6 +45,7 @@ knitr::opts_chunk$set(error=FALSE,
 ```{r packages}
 library(tidyverse)
 library(stringr)
+library(kableExtra)
 library(skimr)
 library(DT)
 library(ggrepel)
@@ -52,6 +53,14 @@ library(broom)
 library(MASS)
 library(corrr)
 library(ggdendro)
+```
+
+```{r ggplot setup, include=FALSE}
+theme_set(theme_classic(base_family = "EB Garamond"))
+
+theme_update(text = element_text(family = "EB Garamond"))
+
+# update_geom_defaults("text", list(family = theme_get()$text$family))
 ```
 
 # Obtain data
@@ -88,8 +97,12 @@ whisky_df_long <- whisky_df %>%
 # summarising taste data
 whisky_df_long %>% 
    group_by(taste_category) %>% 
-   summarise(mean = mean(value),
-             median = median(value))
+   summarise(Mean = mean(value),
+             Median = median(value),
+             SD = sd(value)) %>% 
+   rename(`Taste Category` = 1) %>% 
+   kbl() %>% 
+   kable_styling(html_font = "EB Garamond")
 ```
 
 ## `glimpse()`
@@ -120,7 +133,7 @@ whisky_df %>%
    datatable()
 ```
 
-# Statistical analysis
+# Statistical analysis {.tabset .tabset-pills}
 
 ## Correlations
 
@@ -166,7 +179,7 @@ ggsave("network_plot.png",
 
 ```
 
-## Dendrogram
+## Dendrogram {.tabset .tabset-fade}
 
 ### Dendrogram for distilleries
 
@@ -208,30 +221,103 @@ whisky_df %>%
 
 ## *k*-means clustering
 
-The *k*-means algorithm is used to create distinct clusters among the distilleries based on the values of the tasting categories.
+The *k*-means algorithm is used to create distinct clusters among the distilleries based on the values of the tasting categories. The goal of the *k*-means algorithm is to minimize the sum of within-cluster variance.
 
-```{r, eval=FALSE}
+$$ \Large Formel$$
+
+```{r}
 set.seed(42)
 
-for (i in 2:10) {
-   print(kmeans(whisky_df[, 2:13], i))
+# get k-means object for k from 2 to 9
+for (i in 2:9) {
+   
+  assign(
+     paste0("km_", i), 
+     whisky_df %>% 
+        dplyr::select(Body:Floral) %>% 
+        kmeans(centers = i)
+  )
+   
 }
 
-km_4 <- kmeans(whisky_df[, 2:13], 4)
+# store in list
+km_list <- mget(ls(pattern = "km_"))
 
-whisky_df %>% 
-   select(Body:Floral) %>% 
-   kmeans(4)
+# convert to tidy list with broom::tidy()
+km_tidy_list <- km_list %>%
+   map(tidy) 
 
+# store in data frame / tibble
+km_df <- km_tidy_list %>% 
+   map(~ mutate(., cluster_max = max(as.numeric(cluster)))) %>% 
+   reduce(full_join)
+
+# function: check if row number is correct
+gauss_sum_check <- function(n_max, n_start) {
+   
+   sum_1 <- (n_max * (n_max + 1)) / 2
+   
+   sum_2 <- (n_start * (n_start + 1)) / 2
+   
+   return(sum_1 - sum_2)
+   
+}
+
+km_cluster_max <- km_df %>% 
+   .$cluster_max %>% 
+   max() # 9
+
+# final check if k-means data frame has correct row number
+gauss_sum_check(km_cluster_max, 1) == nrow(km_df)
+
+# visualize k-means results
+km_withinss <- km_df %>% 
+   group_by(cluster_max) %>% 
+   summarise(total_withinss = sum(withinss))
+
+ggplot(km_withinss, aes(x = cluster_max, y = total_withinss)) + 
+   geom_point() + 
+   geom_line() + 
+   scale_x_continuous(breaks = seq(2, 9, 1))
 ```
 
 
 
-## Linear regression / linear model
 
-…
+
 
 ```{r, eval=FALSE}
+
+
+
+
+```
+
+# Visualizing geographical information
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+```{r old code, eval=FALSE, include=FALSE}
 # model_data <- whisky_df %>% 
 #    transmute(across(c(Body:Floral), as.factor))
 
@@ -287,15 +373,7 @@ whisky_df %>%
 
 
 
-```
 
-# Data visualization
-
-## Longitude -- Latitude
-
-…
-
-```{r, eval=FALSE, include=FALSE}
 theme_set(theme_linedraw())
 
 # custom_palette <- RColorBrewer::brewer.pal(n = 10, "Blues")[5:10]
