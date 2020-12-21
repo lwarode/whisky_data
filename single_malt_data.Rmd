@@ -43,16 +43,29 @@ knitr::opts_chunk$set(error=FALSE,
 # R packages and setup
 
 ```{r packages}
+# general (tidy-)toolkit
 library(tidyverse)
 library(stringr)
+
+# displaying data
 library(kableExtra)
 library(skimr)
 library(DT)
-library(ggrepel)
+
+# statistical applications
 library(broom)
 library(MASS)
 library(corrr)
+
+# ggplot extensions
+library(ggrepel)
 library(ggdendro)
+library(lemon)
+
+# maps and co.
+library(sf)
+library(rnaturalearth)
+library(tmap)
 ```
 
 ```{r ggplot setup, include=FALSE}
@@ -60,7 +73,7 @@ theme_set(theme_classic(base_family = "EB Garamond"))
 
 theme_update(text = element_text(family = "EB Garamond"))
 
-# update_geom_defaults("text", list(family = theme_get()$text$family))
+update_geom_defaults("text", list(family = theme_get()$text$family))
 ```
 
 # Obtain data
@@ -155,9 +168,11 @@ corr_plot <- whisky_df %>%
    correlate() %>% 
    rearrange() %>%
    shave() %>% 
-   rplot() 
+   rplot() +
+   theme(text = element_text(family = "EB Garamond"))
 
-corr_plot
+
+corr_plot 
 
 ggsave("corr_plot.png", 
        corr_plot, 
@@ -168,7 +183,8 @@ ggsave("corr_plot.png",
 network_plot <- whisky_df %>% 
    dplyr::select(Body:Floral) %>% 
    correlate() %>% 
-   network_plot()
+   network_plot() + 
+   theme(text = element_text(family = "EB Garamond"))
 
 network_plot
 
@@ -281,19 +297,74 @@ ggplot(km_withinss, aes(x = cluster_max, y = total_withinss)) +
    scale_x_continuous(breaks = seq(2, 9, 1))
 ```
 
+# Visualizing geographical information
 
+```{r}
+#  different background color for maps
+theme_update(panel.background = element_rect(fill = "aliceblue"))
 
+scotland_map_2 <- map_data("world") %>% 
+   filter(subregion == "Scotland") %>% 
+   filter(! is.na(long), ! is.na(lat)) %>% 
+   st_as_sf(coords = c("long", "lat")) 
+   
+   
+  
+# scotland_map <- ne_countries(country = "united kingdom", 
+#                              returnclass = "sf", 
+#                              type = "map_units", 
+#                              scale = "medium") %>% 
+#    filter(name == "Scotland") 
+# 
+# uk_map <- ne_countries(country = "united kingdom", 
+#                              returnclass = "sf", 
+#                              scale = "medium") 
+# 
+# uk_map
 
+british_isles <- ne_countries(country = c("united kingdom", "ireland"), 
+                              returnclass = "sf",
+                              scale = "medium")
 
+# world <- ne_coastline(returnclass = "sf")
 
-```{r, eval=FALSE}
+# convert geographical whisky information
+whisky_sf <- whisky_df %>% 
+   st_as_sf(coords = c("Latitude", "Longitude")) %>%
+   st_set_crs(27700) %>%
+   st_transform(crs = 4326) %>% 
+   mutate(lat = st_coordinates(.)[, 1],
+          long = st_coordinates(.)[, 2])
 
-
-
-
+ggplot() + 
+   geom_sf(data = british_isles, fill = "antiquewhite3") +
+   geom_sf(data = subset(whisky_sf, Smoky == 4), alpha = 0.5) + 
+   geom_text_repel(data = subset(whisky_sf, Smoky == 4), 
+                   aes(label = Distillery, x = lat, y = long), 
+                   family = "EB Garamond",
+                   nudge_x = -1,
+                   nudge_y = 0.125) +
+   scale_color_ordinal(direction = -1, name = "Smokiness") + 
+   annotate("rect", xmin = - 8, xmax = -6, ymin = 59.5, ymax = 60.5, 
+            alpha = 0.5, 
+            fill = "antiquewhite",
+            color = "antiquewhite4") +
+   annotate("text", x = - 7, y = 60, label = "Smoky", size = 10) +
+   coord_sf(x = c(-8, 0),
+            y = c(53, 61)) +
+   labs(x = "", y = "")
 ```
 
-# Visualizing geographical information
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -435,6 +506,18 @@ whisky_df_long %>%
           scale_color_ordinal(direction = -1, name = .) 
    )
    
+
+
+
+
+
+# scotland_map <- map_data("world", "UK") %>% 
+#    filter(subregion == "Scotland")
+# 
+# ggplot(scotland_map, aes(long, lat)) + 
+#    geom_polygon() +
+#    coord_quickmap()
+
 
 ```
 
