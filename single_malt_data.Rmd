@@ -74,6 +74,7 @@ theme_set(theme_classic(base_family = "EB Garamond"))
 theme_update(text = element_text(family = "EB Garamond"))
 
 update_geom_defaults("text", list(family = theme_get()$text$family))
+update_geom_defaults("label", list(family = theme_get()$text$family))
 ```
 
 # Obtain data
@@ -299,34 +300,14 @@ ggplot(km_withinss, aes(x = cluster_max, y = total_withinss)) +
 
 # Visualizing geographical information
 
-```{r}
+```{r, fig.width = 7, fig.height = 10}
 #  different background color for maps
-theme_update(panel.background = element_rect(fill = "aliceblue"))
-
-scotland_map_2 <- map_data("world") %>% 
-   filter(subregion == "Scotland") %>% 
-   filter(! is.na(long), ! is.na(lat)) %>% 
-   st_as_sf(coords = c("long", "lat")) 
-   
-   
-  
-# scotland_map <- ne_countries(country = "united kingdom", 
-#                              returnclass = "sf", 
-#                              type = "map_units", 
-#                              scale = "medium") %>% 
-#    filter(name == "Scotland") 
-# 
-# uk_map <- ne_countries(country = "united kingdom", 
-#                              returnclass = "sf", 
-#                              scale = "medium") 
-# 
-# uk_map
+theme_update(panel.background = element_rect(fill = "aliceblue"),
+             plot.margin = margin(0, 0, 1.5, 0, "cm"))
 
 british_isles <- ne_countries(country = c("united kingdom", "ireland"), 
                               returnclass = "sf",
                               scale = "medium")
-
-# world <- ne_coastline(returnclass = "sf")
 
 # convert geographical whisky information
 whisky_sf <- whisky_df %>% 
@@ -336,6 +317,7 @@ whisky_sf <- whisky_df %>%
    mutate(lat = st_coordinates(.)[, 1],
           long = st_coordinates(.)[, 2])
 
+# distilleries known for smoky whisky -- ENG
 ggplot() + 
    geom_sf(data = british_isles, fill = "antiquewhite3") +
    geom_sf(data = subset(whisky_sf, Smoky == 4), alpha = 0.5) + 
@@ -343,16 +325,69 @@ ggplot() +
                    aes(label = Distillery, x = lat, y = long), 
                    family = "EB Garamond",
                    nudge_x = -1,
-                   nudge_y = 0.125) +
-   scale_color_ordinal(direction = -1, name = "Smokiness") + 
-   annotate("rect", xmin = - 8, xmax = -6, ymin = 59.5, ymax = 60.5, 
-            alpha = 0.5, 
-            fill = "antiquewhite",
-            color = "antiquewhite4") +
-   annotate("text", x = - 7, y = 60, label = "Smoky", size = 10) +
+                   nudge_y = 0.125,
+                   size = 5) +
+   annotate("label", x = - 5.75, y = 60, label = "Distilleries with \n Smoky Whiskies", size = 8, fill = "antiquewhite") +
    coord_sf(x = c(-8, 0),
             y = c(53, 61)) +
-   labs(x = "", y = "")
+   labs(x = "", y = "") + 
+   ggsave("smoky_distilleries.png",
+          width = 7,
+          height = 10.5)
+
+# distilleries known for non-smoky whisky -- ENG
+ggplot() + 
+   geom_sf(data = british_isles, fill = "antiquewhite3") +
+   geom_sf(data = subset(whisky_sf, Smoky == 0), alpha = 0.5) + 
+   geom_text_repel(data = subset(whisky_sf, Smoky == 0), 
+                   aes(label = Distillery, x = lat, y = long), 
+                   family = "EB Garamond",
+                   nudge_x = 0.125,
+                   nudge_y = -0.125,
+                   size = 5) +
+   annotate("label", x = - 5.75, y = 60, label = "Distilleries with \n Non-Smoky Whiskies", size = 8, fill = "antiquewhite") +
+   coord_sf(x = c(-8, 0),
+            y = c(53, 61)) +
+   labs(x = "", y = "") + 
+   ggsave("non-smoky_distilleries.png",
+          width = 7,
+          height = 10.5)
+
+# distilleries known for sweet whisky -- ENG
+ggplot() + 
+   geom_sf(data = british_isles, fill = "antiquewhite3") +
+   geom_sf(data = subset(whisky_sf, Sweetness == 4), alpha = 0.5) + 
+   geom_text_repel(data = subset(whisky_sf, Sweetness == 4), 
+                   aes(label = Distillery, x = lat, y = long), 
+                   family = "EB Garamond",
+                   nudge_x = -1,
+                   nudge_y = 0.125,
+                   size = 5) +
+   annotate("label", x = - 5.75, y = 60, label = "Distilleries with \n Sweet Whiskies", size = 8, fill = "antiquewhite") +
+   coord_sf(x = c(-8, 0),
+            y = c(53, 61)) +
+   labs(x = "", y = "") + 
+   ggsave("sweet_distilleries.png",
+          width = 7,
+          height = 10.5)
+
+# distilleries known for non-sweet whisky -- ENG
+ggplot() + 
+   geom_sf(data = british_isles, fill = "antiquewhite3") +
+   geom_sf(data = subset(whisky_sf, Sweetness == 1), alpha = 0.5) + 
+   geom_text_repel(data = subset(whisky_sf, Sweetness == 1), 
+                   aes(label = Distillery, x = lat, y = long), 
+                   family = "EB Garamond",
+                   nudge_x = 0.125,
+                   nudge_y = -0.125,
+                   size = 5) +
+   annotate("label", x = - 5.75, y = 60, label = "Distilleries with \n Non-Sweet Whiskies", size = 8, fill = "antiquewhite") +
+   coord_sf(x = c(-8, 0),
+            y = c(53, 61)) +
+   labs(x = "", y = "") + 
+   ggsave("non-sweet_distilleries.png",
+          width = 7,
+          height = 10.5)
 ```
 
 
@@ -517,6 +552,11 @@ whisky_df_long %>%
 # ggplot(scotland_map, aes(long, lat)) + 
 #    geom_polygon() +
 #    coord_quickmap()
+
+   annotate("rect", xmin = - 8, xmax = -6, ymin = 59.5, ymax = 60.5, 
+            alpha = 0.5, 
+            fill = "antiquewhite",
+            color = "antiquewhite4") +
 
 
 ```

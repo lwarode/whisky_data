@@ -15,3 +15,5 @@ ___
 ![](dendrogram_taste.png)
 
 ___
+
+![](smoky_distilleries.png)
