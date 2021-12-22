@@ -1,6 +1,6 @@
-# whisky_data
+# Whisky Data 🥃🏴󠁧󠁢󠁳󠁣󠁴󠁿
 
-Analysing and visualising classification data of 86 single malt whiskies / distilleries
+Analysing and visualising classification data of 86 scottish single malt whiskies / distilleries
 
 ___
 
