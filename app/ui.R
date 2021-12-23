@@ -10,7 +10,8 @@ ui <- fluidPage(
            HTML("<hr style='height:10px; margin:10px;'>"),
            h2("Mapping 86 Scottish Distilleries"),
            HTML("<hr style='height:10px;'>")
-        )
+        ),
+        windowTitle = "Whisky Dashboard"
       ),
       fluidRow(
         column(
@@ -24,7 +25,7 @@ ui <- fluidPage(
           width = 6,
           radioButtons(
             "normalize_input",
-            "Use Normalized Variables for Radar Plot",
+            "Variable Transformation",
             choices = c("Original Variables", "Normalized Variables"),
             selected = "Normalized Variables"
           )
