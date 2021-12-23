@@ -4,7 +4,14 @@ ui <- fluidPage(
   fluidRow(
     column(
       width = 4,
-      titlePanel("Whisky Flavor Map"),
+      titlePanel(
+        h1(HTML("<b>Whisky Dashboard </b>"),
+        # h1(HTML("<b>"), "Whisky Dashboard", HTML("</b>"), 
+           HTML("<hr style='height:10px; margin:10px;'>"),
+           h2("Mapping 86 Scottish Distilleries"),
+           HTML("<hr style='height:10px;'>")
+        )
+      ),
       fluidRow(
         column(
           width = 6,
