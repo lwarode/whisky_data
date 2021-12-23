@@ -165,8 +165,6 @@ server <- function(input, output, session) {
         str_replace_all(" ", "_")
     } 
   })
-  
-  output$debug_name <- renderPrint(name_dist())
 
   output$radar_plot_download <- downloadHandler(
     filename = function() {
